@@ -1,0 +1,10 @@
+node_modules
+dist
+.naver-session
+.naver-raw-sample.json
+android/.gradle
+android/build
+android/app/build
+android/capacitor-cordova-android-plugins/build
+android/local.properties
+Memora-debug.apk

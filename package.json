@@ -1,0 +1,24 @@
+{
+  "name": "memora-vocab",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "import:naver": "node scripts/naver-import.mjs",
+    "test:fsrs": "node scripts/test-fsrs.mjs",
+    "cap:sync": "vite build && cap copy android",
+    "apk:build": "vite build && cap copy android && JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" ./android/gradlew -p android assembleDebug && cp android/app/build/outputs/apk/debug/app-debug.apk ./Memora-debug.apk"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "playwright": "^1.48.0"
+  }
+}

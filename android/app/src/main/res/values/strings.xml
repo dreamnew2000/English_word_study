@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Memora 단어장</string>
+    <string name="title_activity_main">Memora 단어장</string>
+    <string name="package_name">com.jyc.memora</string>
+    <string name="custom_url_scheme">com.jyc.memora</string>
+    <string name="widget_desc">홈 화면에서 바로 오늘의 단어 인출 연습·FSRS 망각곡선 복습·원어민 발음을 실행하는 위젯</string>
+</resources>

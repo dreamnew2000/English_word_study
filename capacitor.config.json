@@ -1,0 +1,9 @@
+{
+  "appId": "com.jyc.memora",
+  "appName": "Memora 단어장",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
