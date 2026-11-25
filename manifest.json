@@ -1,0 +1,76 @@
+{
+  "name": "Memora — 과학적 영어 단어 암기",
+  "short_name": "Memora",
+  "description": "FSRS 망각곡선 복습과 안드로이드 홈화면 위젯으로 핸드폰을 켤 때마다 자연스럽게 기억하는 영단어 앱",
+  "start_url": "/#/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b0d1a",
+  "theme_color": "#0b0d1a",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "📚 단어장 바로가기",
+      "short_name": "단어장",
+      "description": "네이버 단어장 전체 검색 및 목록 바로가기",
+      "url": "/#/words",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "✨ 오늘 새 단어",
+      "short_name": "새 단어",
+      "description": "오늘의 새 단어 20개 부호화 & 인출 연습",
+      "url": "/#/learn",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "🔁 단어 복습",
+      "short_name": "복습",
+      "description": "망각곡선 주기 복습 진행",
+      "url": "/#/review",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "📱 단어 위젯",
+      "short_name": "위젯",
+      "description": "스마트폰 화면 켤 때 자동 암기 단어 위젯",
+      "url": "/#/widget",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "widgets": [
+    {
+      "name": "Memora 단어 위젯",
+      "short_name": "단어 위젯",
+      "description": "스마트폰 홈화면에서 바로 확인하는 영어 단어 및 발음 위젯",
+      "tag": "memora-word-widget",
+      "template": "memora-widget-template",
+      "ms_ac_template": "/#/widget",
+      "data": "/words.json",
+      "type": "text/html",
+      "auth": false,
+      "screenshots": [
+        {
+          "src": "/icons/icon-512.png",
+          "sizes": "512x512",
+          "label": "Memora Widget Preview"
+        }
+      ]
+    }
+  ]
+}
