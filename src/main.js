@@ -103,8 +103,8 @@ function home() {
     </div></div>
 
   <div class="glass cta">
-    <div style="flex:1"><h2 style="margin-bottom:6px">${d.done ? '🎉 오늘 목표 달성!' : '오늘 해야 할 학습'}</h2>
-      <p class="sub" style="margin-bottom:14px">새 단어 ${learnedNew}/${nw.length} · 복습 남음 ${due.length}개</p>
+    <div class="cta-header"><h2 style="margin-bottom:6px;font-size:22px">${d.done ? '🎉 오늘 목표 달성!' : '오늘 해야 할 학습'}</h2>
+      <p class="sub" style="margin-bottom:14px;font-size:15px">새 단어 ${learnedNew}/${nw.length} · 복습 남음 ${due.length}개</p>
       <div class="progress"><i style="width:${pct}%"></i></div></div>
     <div class="row">
       <a class="btn primary lg" id="btn-start-learn" href="#/learn">✨ 새 단어 ${nw.length - learnedNew}</a>

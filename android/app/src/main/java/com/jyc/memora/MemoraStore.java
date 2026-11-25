@@ -71,6 +71,13 @@ public class MemoraStore {
         return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(d);
     }
 
+    // 위젯 상단 표시용 한국어 날짜 (예: 11월 25일 (수))
+    public static String getTodayFormatted() {
+        long fiveHours = 5L * 3600000L;
+        Date d = new Date(System.currentTimeMillis() - fiveHours);
+        return new SimpleDateFormat("M월 d일 (E)", Locale.KOREAN).format(d);
+    }
+
     public static String addDaysIso(String iso, int days) {
         try {
             SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd", Locale.US);

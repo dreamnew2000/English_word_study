@@ -64,8 +64,17 @@ h2 { font-size: 20px; font-weight: 600; margin-bottom: 14px; }
 .icon-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.08); display: inline-grid; place-items: center; font-size: 18px; transition: .2s; flex-shrink: 0; }
 .icon-btn:hover { background: var(--p1); transform: scale(1.08); }
 
-.cta { padding: 28px; display: flex; justify-content: space-between; align-items: center; gap: 20px; background: linear-gradient(135deg, hsla(258,90%,66%,.25), hsla(190,90%,55%,.15)); }
-.progress { height: 10px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; }
+.cta {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: linear-gradient(135deg, hsla(258,90%,66%,.25), hsla(190,90%,55%,.15));
+}
+.cta-header { width: 100%; }
+.cta .row { width: 100%; display: flex; gap: 12px; }
+.cta .row .btn { flex: 1 1 0; text-align: center; justify-content: center; }
+.progress { height: 10px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; width: 100%; }
 .progress > i { display: block; height: 100%; background: var(--grad); border-radius: 99px; transition: width .5s; }
 
 /* Flashcard */

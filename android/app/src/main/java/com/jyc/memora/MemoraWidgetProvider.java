@@ -115,20 +115,20 @@ public class MemoraWidgetProvider extends AppWidgetProvider {
     private static RemoteViews buildRemoteViews(Context ctx, MemoraStore.WidgetData wd) {
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.memora_widget);
 
-        String badge;
-        if (wd.todayDone) {
-            badge = "🎉 완료 (" + wd.newDone + "/" + wd.newTotal + ")";
-        } else if ("review".equals(wd.kind)) {
-            badge = "복습 " + wd.curIndex + "/" + wd.curTotal;
-        } else {
-            badge = "새단어 " + wd.curIndex + "/" + wd.curTotal;
-        }
-        rv.setTextViewText(R.id.widget_badge, badge);
+        // 1. 맨윗줄: 오늘 날짜 | 새단어 10 · 복습 5
+        rv.setTextViewText(R.id.widget_top_date, MemoraStore.getTodayFormatted());
+        int newRem = Math.max(0, wd.newTotal - wd.newDone);
+        String statsText = wd.todayDone ? "🎉 완료" : ("새단어 " + newRem + " · 복습 " + wd.dueLeft);
+        rv.setTextViewText(R.id.widget_top_stats, statsText);
+        rv.setOnClickPendingIntent(R.id.widget_top_date, openAppPi(ctx));
+        rv.setOnClickPendingIntent(R.id.widget_top_stats, openAppPi(ctx));
 
+        // 2. 단어 및 발음기호
         rv.setTextViewText(R.id.widget_word, wd.word.isEmpty() ? "Memora" : wd.word);
         String pronText = (wd.pron == null || wd.pron.isEmpty()) ? "" : wd.pron;
         rv.setTextViewText(R.id.widget_pron, pronText);
 
+        // 3. 뜻 및 예문
         rv.setTextViewText(R.id.widget_meaning, wd.meaning.isEmpty() ? "(뜻 정보 없음)" : wd.meaning);
         if (wd.example != null && !wd.example.isEmpty()) {
             String ex = "“" + wd.example + "”" + (wd.exampleKo.isEmpty() ? "" : "\n" + wd.exampleKo);
@@ -146,21 +146,32 @@ public class MemoraWidgetProvider extends AppWidgetProvider {
             rv.setViewVisibility(R.id.widget_revealed_box, View.GONE);
         }
 
-        // Top Bar: << 이전 | 새단어 0/20 (탭하면 앱 열기) | 다음 >>
+        // 4. 맨 아랫줄: << 이전 | 새단어 1/10 (or 복습 2/5) | 다음 >>
+        String badge;
+        if (wd.todayDone) {
+            badge = "🎉 오늘 목표 달성 (" + wd.newDone + "/" + wd.newTotal + ")";
+        } else if ("review".equals(wd.kind)) {
+            badge = "복습 " + wd.curIndex + "/" + wd.curTotal;
+        } else {
+            badge = "새단어 " + wd.curIndex + "/" + wd.curTotal;
+        }
+        rv.setTextViewText(R.id.widget_badge, badge);
+
         rv.setOnClickPendingIntent(R.id.widget_btn_prev, broadcastPi(ctx, ACTION_PREV, 2));
         rv.setOnClickPendingIntent(R.id.widget_badge, openAppPi(ctx));
         rv.setOnClickPendingIntent(R.id.widget_btn_next, broadcastPi(ctx, ACTION_NEXT, 3));
 
-        // Word Row: 단어 옆 오른쪽 정렬된 🔊 소리 버튼 (단어 영역 탭 시 앱 열기)
+        // 단어 발음 TTS
         rv.setOnClickPendingIntent(R.id.widget_btn_tts, broadcastPi(ctx, ACTION_TTS, 1));
         rv.setOnClickPendingIntent(R.id.widget_word, openAppPi(ctx));
         rv.setOnClickPendingIntent(R.id.widget_pron, openAppPi(ctx));
 
-        // Meaning & Example & 2 Mark Buttons
+        // 정답 확인 및 숨기기, 예문 TTS
         rv.setOnClickPendingIntent(R.id.widget_reveal_prompt, broadcastPi(ctx, ACTION_REVEAL, 4));
         rv.setOnClickPendingIntent(R.id.widget_meaning, broadcastPi(ctx, ACTION_HIDE, 5));
         rv.setOnClickPendingIntent(R.id.widget_example, broadcastPi(ctx, ACTION_TTS_EXAMPLE, 6));
 
+        // 몰라요 / 외웠어요
         rv.setOnClickPendingIntent(R.id.widget_mark_no, broadcastPi(ctx, ACTION_MARK_NO, 11));
         rv.setOnClickPendingIntent(R.id.widget_mark_yes, broadcastPi(ctx, ACTION_MARK_YES, 12));
 
