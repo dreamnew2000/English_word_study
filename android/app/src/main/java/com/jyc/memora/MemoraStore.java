@@ -56,14 +56,19 @@ public class MemoraStore {
         public double stability = 0;
         public float speechRate = 0.95f;
         public String lastFeedback = "";
+        public int curIndex = 1;
+        public int curTotal = 1;
     }
 
     private static SharedPreferences prefs(Context ctx) {
         return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
+    // 매일 아침 5시 기준 리프레시 (새벽 5시 이전은 전날 날짜로 판정)
     public static String todayIso() {
-        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+        long fiveHours = 5L * 3600000L;
+        Date d = new Date(System.currentTimeMillis() - fiveHours);
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(d);
     }
 
     public static String addDaysIso(String iso, int days) {
@@ -439,6 +444,22 @@ public class MemoraStore {
             kind = "extra";
         }
 
+        int curIdx = 1;
+        int curTot = 1;
+        if ("review".equals(kind)) {
+            curTot = Math.max(1, dueIds.size());
+            int pos = dueIds.indexOf(curId);
+            curIdx = (pos >= 0 ? pos + 1 : 1);
+        } else if ("new".equals(kind)) {
+            curTot = Math.max(1, unlearnedNew.size());
+            int pos = unlearnedNew.indexOf(curId);
+            curIdx = (pos >= 0 ? pos + 1 : 1);
+        } else {
+            curTot = Math.max(1, queue.size());
+            int pos = queue.indexOf(curId);
+            curIdx = (pos >= 0 ? pos + 1 : 1);
+        }
+
         WidgetData wd = new WidgetData();
         wd.id = curId;
         wd.kind = kind;
@@ -446,6 +467,8 @@ public class MemoraStore {
         wd.newDone = learned != null ? learned.length() : 0;
         wd.newTotal = todaysNew.size();
         wd.dueLeft = dueIds.size();
+        wd.curIndex = curIdx;
+        wd.curTotal = curTot;
         wd.todayDone = done;
         wd.streak = calcStreak(state, today);
         wd.lastFeedback = sp.getString(KEY_LAST_TOAST, "");

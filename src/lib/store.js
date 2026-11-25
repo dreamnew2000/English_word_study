@@ -2,8 +2,10 @@ import { review } from './fsrs.js';
 
 const KEY = 'memora:v1';
 const DAY = 86400000;
+// 매일 아침 5시 기준 리프레시 (자정~04:59는 전날 학습일로 취급)
 export const today = (d = new Date()) => {
-  const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  const adjusted = new Date(d.getTime() - 5 * 3600000);
+  const z = new Date(adjusted.getTime() - adjusted.getTimezoneOffset() * 60000);
   return z.toISOString().slice(0, 10);
 };
 export const addDays = (iso, n) => today(new Date(new Date(iso + 'T12:00:00').getTime() + n * DAY));

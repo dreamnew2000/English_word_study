@@ -165,6 +165,29 @@ function onboarding() {
   document.getElementById('btn-sync0').onclick = async () => { await syncWords(); router(); };
 }
 
+// ---------- Touch Swipe Helper ----------
+function attachSwipe(el, { onLeft, onRight, minDelta = 40 }) {
+  if (!el) return;
+  let startX = 0, startY = 0, startTime = 0;
+  el.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    startTime = Date.now();
+  }, { passive: true });
+
+  el.addEventListener('touchend', (e) => {
+    if (!e.changedTouches || e.changedTouches.length !== 1) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    const dt = Date.now() - startTime;
+    if (Math.abs(dx) >= minDelta && Math.abs(dx) > Math.abs(dy) * 1.2 && dt < 800) {
+      if (dx < 0) onLeft?.();
+      else onRight?.();
+    }
+  }, { passive: true });
+}
+
 // ---------- Insight panel ----------
 function highlight(text, w) {
   const stem = w.word.split(' ')[0].slice(0, Math.max(3, w.word.length - 2));
@@ -203,53 +226,139 @@ async function renderInsight(el, w) {
 }
 
 // ---------- Learn (새 단어 학습: 뜻·단어장 예문 확인 후 ✓ 체크 또는 🔁 복습으로 넘기기) ----------
+let learnIdx = 0;
 function learn() {
   const allToday = store.todaysNew();
-  const list = allToday.filter((w) => !store.dayRec().learned.includes(w.id));
-  if (!list.length) {
+  if (!allToday.length) {
+    return doneScreen('학습할 단어가 단어장에 없습니다.', '단어장 보러 가기', '#/words');
+  }
+
+  // 처음에 아직 안 외운 첫 단어로 이동
+  const unlearnedIdx = allToday.findIndex((w) => !store.dayRec().learned.includes(w.id));
+  if (unlearnedIdx !== -1) {
+    learnIdx = unlearnedIdx;
+  } else if (learnIdx >= allToday.length) {
+    learnIdx = 0;
+  }
+
+  // 모두 완료된 경우
+  if (unlearnedIdx === -1) {
     const dueCount = store.dueReviews().length;
     return dueCount
       ? doneScreen(`오늘의 새 단어를 모두 확인했어요! (복습할 단어 ${dueCount}개)`, `🔁 복습하러 가기 (${dueCount}개)`, '#/review')
       : doneScreen('오늘의 새 단어와 복습을 모두 마쳤어요! 🎉', '📅 달력 보기', '#/calendar');
   }
-  const w = list[0];
-  const doneCount = allToday.length - list.length;
-  const pronClean = (w.pron || '').replace(/^\[|\]$/g, '');
-  $view.innerHTML = `<div class="study">
-    ${studyHead('✨ 오늘의 새 단어', `${doneCount + 1} / ${allToday.length} · 외웠으면 체크(✓), 모르면 복습으로 넘기세요`, (doneCount / Math.max(1, allToday.length)) * 100)}
-    <div class="glass flash">
-      <div class="row"><div class="word">${esc(w.word)}</div><button class="icon-btn" id="btn-say" title="단어 발음">🔊</button></div>
-      ${pronClean || w.part ? `<div class="pron">${pronClean ? `[${esc(pronClean)}]` : ''} ${esc(w.part || '')}</div>` : ''}
-      <div class="meaning">${esc(w.meaning)}</div>
-      <div class="insight" id="insight"></div>
-      <div class="marks" style="margin-top:14px">
-        <button class="m-no" id="btn-to-review">🔁 복습으로 넘기기<small>모르는 단어 · 복습 탭에 추가</small></button>
-        <button class="m-yes" id="btn-check">✅ 외웠어요<small>체크하고 다음 단어</small></button>
+
+  function renderCard(dir = '') {
+    if (learnIdx < 0) learnIdx = 0;
+    if (learnIdx >= allToday.length) {
+      const leftWords = allToday.filter((w) => !store.dayRec().learned.includes(w.id));
+      if (!leftWords.length) {
+        const dueCount = store.dueReviews().length;
+        return dueCount
+          ? doneScreen(`오늘의 새 단어를 모두 확인했어요! (복습할 단어 ${dueCount}개)`, `🔁 복습하러 가기 (${dueCount}개)`, '#/review')
+          : doneScreen('오늘의 새 단어와 복습을 모두 마쳤어요! 🎉', '📅 달력 보기', '#/calendar');
+      }
+      learnIdx = allToday.findIndex((w) => !store.dayRec().learned.includes(w.id));
+    }
+
+    const w = allToday[learnIdx];
+    const isLearned = store.dayRec().learned.includes(w.id);
+    const pronClean = (w.pron || '').replace(/^\[|\]$/g, '');
+    const slideClass = dir === 'left' ? 'slide-left' : dir === 'right' ? 'slide-right' : '';
+
+    $view.innerHTML = `<div class="study">
+      ${studyHead('✨ 오늘의 새 단어', `${learnIdx + 1} / ${allToday.length} · 좌우 스와이프로 단어 이동`, ((learnIdx + 1) / Math.max(1, allToday.length)) * 100)}
+      <div class="swipe-hint">
+        <button class="btn" id="btn-prev" ${learnIdx === 0 ? 'disabled style="opacity:0.35"' : ''}>‹ 이전 단어</button>
+        <span>👈 좌우 스와이프로 이동 👉</span>
+        <button class="btn" id="btn-next" ${learnIdx === allToday.length - 1 ? 'disabled style="opacity:0.35"' : ''}>다음 단어 ›</button>
       </div>
-      <div class="row" style="margin-top:8px">
-        <button class="btn" id="btn-shadow">🎧 3회 반복 듣기</button>
-      </div>
-      <details style="text-align:left"><summary style="cursor:pointer;color:var(--muted)">✍️ 나만의 문장 만들기 (선택)</summary>
-        <div style="display:flex;gap:8px;margin-top:10px"><input id="my-sent" placeholder="${esc(w.word)}를 넣어 영어 문장을 써보세요"/><button class="btn" id="btn-fb">확인</button></div>
-        <div id="fb" style="margin-top:10px"></div></details>
-    </div></div>`;
-  const say = () => speak(w.word, { audio: w._audio });
-  say();
-  renderInsight(document.getElementById('insight'), w);
-  document.getElementById('btn-say').onclick = say;
-  document.getElementById('btn-shadow').onclick = async () => { for (let k = 0; k < 3; k++) { await speak(w.word, { rate: 0.85 }); await new Promise((r) => setTimeout(r, 1200)); } };
-  document.getElementById('btn-fb').onclick = () => writeFeedback(w);
-  const handle = (known) => {
-    const c = store.mark(w.id, known, 'new');
-    toast(known ? `✅ 외움 체크! (${c.interval}일 뒤 복습)` : '🔁 복습할 단어 목록으로 넘겼어요');
-    learn();
-  };
-  document.getElementById('btn-to-review').onclick = () => handle(false);
-  document.getElementById('btn-check').onclick = () => handle(true);
-  onKey((e) => {
-    if (e.code === 'Space' || e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); handle(true); }
-    else if (e.key === 'ArrowLeft' || e.key === 'x') { e.preventDefault(); handle(false); }
-  });
+      <div class="glass flash ${slideClass}" id="flash-card">
+        <div class="row">
+          <div class="word">${esc(w.word)} ${isLearned ? '<span style="font-size:15px;color:var(--ok);font-weight:600">✓ 외움</span>' : ''}</div>
+          <button class="icon-btn" id="btn-say" title="단어 발음">🔊</button>
+        </div>
+        ${pronClean || w.part ? `<div class="pron">${pronClean ? `[${esc(pronClean)}]` : ''} ${esc(w.part || '')}</div>` : ''}
+        <div class="meaning">${esc(w.meaning)}</div>
+        <div class="insight" id="insight"></div>
+        <div class="marks" style="margin-top:14px">
+          <button class="m-no" id="btn-to-review">🔁 복습으로 넘기기<small>모르는 단어 · 복습 탭에 추가</small></button>
+          <button class="m-yes" id="btn-check">✅ 외웠어요<small>체크하고 다음 단어</small></button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="btn-shadow">🎧 3회 반복 듣기</button>
+        </div>
+        <details style="text-align:left"><summary style="cursor:pointer;color:var(--muted)">✍️ 나만의 문장 만들기 (선택)</summary>
+          <div style="display:flex;gap:8px;margin-top:10px"><input id="my-sent" placeholder="${esc(w.word)}를 넣어 영어 문장을 써보세요"/><button class="btn" id="btn-fb">확인</button></div>
+          <div id="fb" style="margin-top:10px"></div></details>
+      </div></div>`;
+
+    const say = () => speak(w.word, { audio: w._audio });
+    say();
+    renderInsight(document.getElementById('insight'), w);
+    document.getElementById('btn-say').onclick = say;
+    document.getElementById('btn-shadow').onclick = async () => {
+      for (let k = 0; k < 3; k++) {
+        await speak(w.word, { rate: 0.85 });
+        await new Promise((r) => setTimeout(r, 1200));
+      }
+    };
+    document.getElementById('btn-fb').onclick = () => writeFeedback(w);
+
+    const goNext = () => {
+      if (learnIdx < allToday.length - 1) {
+        learnIdx++;
+        renderCard('left');
+      } else {
+        const leftWords = allToday.filter((x) => !store.dayRec().learned.includes(x.id));
+        if (!leftWords.length) {
+          const dueCount = store.dueReviews().length;
+          return dueCount
+            ? doneScreen(`오늘의 새 단어를 모두 확인했어요! (복습할 단어 ${dueCount}개)`, `🔁 복습하러 가기 (${dueCount}개)`, '#/review')
+            : doneScreen('오늘의 새 단어와 복습을 모두 마쳤어요! 🎉', '📅 달력 보기', '#/calendar');
+        } else {
+          toast(`아직 체크하지 않은 단어가 ${leftWords.length}개 있습니다.`);
+          learnIdx = allToday.findIndex((x) => !store.dayRec().learned.includes(x.id));
+          renderCard('left');
+        }
+      }
+    };
+
+    const goPrev = () => {
+      if (learnIdx > 0) {
+        learnIdx--;
+        renderCard('right');
+      } else {
+        toast('첫 번째 단어입니다');
+      }
+    };
+
+    document.getElementById('btn-prev').onclick = goPrev;
+    document.getElementById('btn-next').onclick = goNext;
+
+    const handle = (known) => {
+      const c = store.mark(w.id, known, 'new');
+      toast(known ? `✅ 외움 체크! (${c.interval}일 뒤 복습)` : '🔁 복습할 단어 목록으로 넘겼어요');
+      goNext();
+    };
+    document.getElementById('btn-to-review').onclick = () => handle(false);
+    document.getElementById('btn-check').onclick = () => handle(true);
+
+    attachSwipe(document.getElementById('flash-card'), {
+      onLeft: () => goNext(),
+      onRight: () => goPrev(),
+    });
+
+    onKey((e) => {
+      if (e.code === 'Space' || e.key === 'Enter') { e.preventDefault(); handle(true); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
+      else if (e.key === 'x') { e.preventDefault(); handle(false); }
+    });
+  }
+
+  renderCard();
 }
 
 async function writeFeedback(w) {
@@ -285,34 +394,78 @@ function reviewSummary({ known, unknown }) {
 
 /** 공통 인출 퀴즈: 뜻을 떠올린 뒤 확인 → ✓ 외웠어요 / ✗ 몰라요(복습 목록으로) */
 function quiz(queue, kind, onFinish, title) {
-  const total = queue.length; let known = 0, unknown = 0;
-  const step = () => {
-    if (!queue.length) {
+  const total = queue.length;
+  let curIdx = 0;
+  const history = {};
+
+  const renderCard = (dir = '') => {
+    if (curIdx < 0) curIdx = 0;
+    if (curIdx >= total) {
       store.checkDone();
-      toast(store.dayRec().done ? '🎉 오늘 목표 달성! 달력에 체크되었어요.' : unknown ? `✗ ${unknown}개는 복습 목록으로 넘겼어요` : '👍 모두 외웠어요!');
-      return onFinish({ known, unknown });
+      const knownCount = Object.values(history).filter((h) => h.known).length;
+      const unknownCount = Object.values(history).filter((h) => !h.known).length;
+      toast(store.dayRec().done ? '🎉 오늘 목표 달성! 달력에 체크되었어요.' : unknownCount ? `✗ ${unknownCount}개는 복습 목록으로 넘겼어요` : '👍 모두 외웠어요!');
+      return onFinish({ known: knownCount, unknown: unknownCount });
     }
-    const w = queue[0];
+
+    const w = queue[curIdx];
     const card = S().cards[w.id];
     const mode = kind === 'review' && card?.reps >= 2 && Math.random() < 0.3 ? 'spell' : 'recall';
-    const done = known + unknown;
-    let revealed = false;
+    let revealed = !!history[w.id];
+    const slideClass = dir === 'left' ? 'slide-left' : dir === 'right' ? 'slide-right' : '';
+
     $view.innerHTML = `<div class="study">
-      ${studyHead(title, `${done + 1}/${total} · ${mode === 'spell' ? '뜻을 보고 영어 철자를 입력해 보세요' : '뜻을 먼저 떠올린 뒤 확인하세요'}`, kind === 'new' ? 50 + (done / total) * 50 : (done / total) * 100)}
-      <div class="glass flash" id="flash">
+      ${studyHead(title, `${curIdx + 1}/${total} · ${mode === 'spell' ? '뜻을 보고 영어 철자를 입력해 보세요' : '뜻을 먼저 떠올린 뒤 확인하세요'}`, ((curIdx + 1) / total) * 100)}
+      <div class="swipe-hint">
+        <button class="btn" id="btn-quiz-prev" ${curIdx === 0 ? 'disabled style="opacity:0.35"' : ''}>‹ 이전 단어</button>
+        <span>👈 좌우 스와이프로 이동 👉</span>
+        <button class="btn" id="btn-quiz-next" ${curIdx === total - 1 ? 'disabled style="opacity:0.35"' : ''}>다음 단어 ›</button>
+      </div>
+      <div class="glass flash ${slideClass}" id="flash-quiz">
         ${mode === 'spell'
           ? `<div class="meaning" style="font-size:28px">${esc(w.meaning)}</div>
              <input id="spell" placeholder="영어 단어를 입력하세요" autocomplete="off" autocapitalize="off" style="text-align:center;font-size:22px;max-width:400px;margin:0 auto"/>`
           : `<div class="row"><div class="word">${esc(w.word)}</div><button class="icon-btn" id="btn-say">🔊</button></div>
              ${w.pron ? `<div class="pron">${esc(w.pron)}</div>` : ''}`}
-        <div id="answer"><div class="hidden-box">🤔 뜻을 머릿속으로 먼저 떠올려 보세요</div></div>
-        <div id="actions" class="row"><button class="btn primary lg" id="btn-reveal">정답 확인 <span class="kbd">Space</span></button></div>
+        <div id="answer">${revealed ? '' : '<div class="hidden-box">🤔 뜻을 머릿속으로 먼저 떠올려 보세요</div>'}</div>
+        <div id="actions" class="row">
+          ${revealed ? '' : '<button class="btn primary lg" id="btn-reveal">정답 확인 <span class="kbd">Space</span></button>'}
+        </div>
       </div></div>`;
-    if (mode === 'recall') { speak(w.word, { audio: w._audio }); document.getElementById('btn-say').onclick = () => speak(w.word); }
-    else setTimeout(() => document.getElementById('spell')?.focus(), 50);
+
+    const say = () => speak(w.word, { audio: w._audio });
+    if (mode === 'recall') {
+      say();
+      document.getElementById('btn-say').onclick = say;
+    } else {
+      setTimeout(() => document.getElementById('spell')?.focus(), 50);
+    }
+
+    const goNext = () => {
+      if (curIdx < total - 1) {
+        curIdx++;
+        renderCard('left');
+      } else {
+        curIdx++;
+        renderCard('left');
+      }
+    };
+
+    const goPrev = () => {
+      if (curIdx > 0) {
+        curIdx--;
+        renderCard('right');
+      } else {
+        toast('첫 번째 단어입니다');
+      }
+    };
+
+    document.getElementById('btn-quiz-prev').onclick = goPrev;
+    document.getElementById('btn-quiz-next').onclick = goNext;
 
     const reveal = () => {
-      if (revealed) return; revealed = true;
+      if (revealed) return;
+      revealed = true;
       let correct = null;
       if (mode === 'spell') {
         const v = document.getElementById('spell').value.trim().toLowerCase();
@@ -330,22 +483,40 @@ function quiz(queue, kind, onFinish, title) {
       document.getElementById('btn-no').onclick = () => mark(false);
       document.getElementById('btn-yes').onclick = () => mark(true);
     };
+
+    if (revealed) reveal();
+
     const mark = (ok) => {
-      queue.shift();
+      history[w.id] = { known: ok };
       const c = store.mark(w.id, ok, kind);
-      if (ok) { known++; toast(`✓ ${c.interval}일 뒤 복습 (${c.due})`); }
-      else { unknown++; toast('✗ 복습 목록에 추가했어요'); }
-      step();
+      if (ok) { toast(`✓ ${c.interval}일 뒤 복습 (${c.due})`); }
+      else { toast('✗ 복습 목록에 추가했어요'); }
+      goNext();
     };
-    document.getElementById('btn-reveal').onclick = reveal;
-    const sp = document.getElementById('spell'); if (sp) sp.onkeydown = (e) => { if (e.key === 'Enter') reveal(); };
+
+    const btnRev = document.getElementById('btn-reveal');
+    if (btnRev) btnRev.onclick = reveal;
+    const sp = document.getElementById('spell');
+    if (sp) sp.onkeydown = (e) => { if (e.key === 'Enter') reveal(); };
+
+    attachSwipe(document.getElementById('flash-quiz'), {
+      onLeft: () => {
+        if (!revealed) reveal();
+        else goNext();
+      },
+      onRight: () => goPrev(),
+    });
+
     onKey((e) => {
       if (e.code === 'Space' && !revealed) { e.preventDefault(); reveal(); }
       else if (revealed && (e.key === 'ArrowRight' || e.key === 'Enter' || e.key === 'o')) mark(true);
       else if (revealed && (e.key === 'ArrowLeft' || e.key === 'x')) mark(false);
+      else if (!revealed && e.key === 'ArrowLeft') goPrev();
+      else if (!revealed && e.key === 'ArrowRight') goNext();
     });
   };
-  step();
+
+  renderCard();
 }
 
 const studyHead = (t, s, p) => `<div class="head" style="margin-bottom:16px"><div><h1 style="font-size:26px">${t}</h1><p class="sub">${s}</p></div>

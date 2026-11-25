@@ -118,10 +118,10 @@ public class MemoraWidgetProvider extends AppWidgetProvider {
         String badge;
         if (wd.todayDone) {
             badge = "🎉 완료 (" + wd.newDone + "/" + wd.newTotal + ")";
-        } else if (wd.dueLeft > 0) {
-            badge = "새단어 " + wd.newDone + "/" + wd.newTotal + " · 복습 " + wd.dueLeft;
+        } else if ("review".equals(wd.kind)) {
+            badge = "복습 " + wd.curIndex + "/" + wd.curTotal;
         } else {
-            badge = "새단어 " + wd.newDone + "/" + wd.newTotal;
+            badge = "새단어 " + wd.curIndex + "/" + wd.curTotal;
         }
         rv.setTextViewText(R.id.widget_badge, badge);
 
